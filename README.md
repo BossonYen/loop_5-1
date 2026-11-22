@@ -19,7 +19,7 @@
             --text-color: #333333;
             --code-bg: #1e2227;
         }
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
         }
         body {
@@ -346,6 +346,8 @@
         }
         .watch-val.true-val { color: var(--success-color); }
         .watch-val.false-val { color: var(--danger-color); }
+        .watch-val.continue-val { color: var(--accent-color); }
+        .watch-val.break-val { color: var(--danger-color); }
         .step-explanation {
             background: #fff8e7;
             border-left: 4px solid var(--accent-color);
@@ -409,6 +411,21 @@
             margin-top: 0;
             color: var(--secondary-color);
         }
+        .badge-flow {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            background: var(--primary-color);
+        }
+        .badge-flow.is-continue {
+            background: var(--accent-color);
+        }
+        .badge-flow.is-break {
+            background: var(--danger-color);
+        }
         select, input[type="number"] {
             padding: 6px 10px;
             border-radius: 5px;
@@ -454,6 +471,7 @@
     <a data-target="tab-advanced" class="nav-link">2. 累加與進階應用</a>
     <a data-target="tab-practice" class="nav-link">3. 動手做練習 (2題)</a>
     <a data-target="tab-mistakes" class="nav-link">4. 易錯觀念與陷阱</a>
+    <a data-target="tab-control" class="nav-link">5. continue 與 break 除錯</a>
 </nav>
 
 <div class="container">
@@ -810,6 +828,115 @@ int main() {
         </div>
     </div>
 
+    <!-- 主題五：continue 與 break 流程控制與逐步除錯 -->
+    <div id="tab-control" class="tab-content">
+        <h2>5. 迴圈控制指令：<code>continue</code> 與 <code>break</code> 逐步除錯</h2>
+        <p>
+            以下範例讓 <code>i</code> 從 <code>1</code> 跑到 <code>5</code>：當 <code>i == 2</code> 時執行
+            <strong><code>continue</code></strong>（跳過印出 2，直接執行 <code>i++</code> 進入下一輪）；當 <code>i == 4</code> 時執行
+            <strong><code>break</code></strong>（直接跳出整個 <code>for</code> 迴圈，<code>5</code> 也不會執行）。
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>控制指令</th>
+                    <th>遇到時的行為</th>
+                    <th>對 <code>for</code> 更新變數（<code>i++</code>）的影響</th>
+                    <th>常見應用情境</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong><code>continue</code></strong></td>
+                    <td>跳過本次迴圈剩餘敘述，直接進入下一輪</td>
+                    <td><strong>會執行</strong>更新變數（如 <code>i++</code>），再重新判斷條件</td>
+                    <td>過濾特定條件（例如：跳過偶數、跳過不合法輸入）</td>
+                </tr>
+                <tr>
+                    <td><strong><code>break</code></strong></td>
+                    <td>立刻強制跳出並結束整個 <code>for</code> 迴圈</td>
+                    <td><strong>不再執行</strong>後續更新與條件判斷，直接前往迴圈後敘述</td>
+                    <td>提前達標或找到目標（例如：找到第一個符合條件的值就停止）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="side-by-side-grid">
+            <!-- 左側：Mermaid 流程圖 -->
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>📊 continue 與 break 執行流程圖</span>
+                    <span class="badge-flow" id="ctrl-flow-badge">一般循環</span>
+                </div>
+                <div class="flowchart-container">
+                    <div class="mermaid notranslate">
+flowchart TD
+    Start(["開始"]) --> Init["i = 1"]
+    Init --> Cond{"i &lt;= 5"}
+    Cond -- "False" --> End(["迴圈結束，執行迴圈後程式"])
+    Cond -- "True" --> IfBreak{"i == 4 ?"}
+    IfBreak -- "True" --> BreakStmt["break：立刻跳出迴圈"]
+    BreakStmt --> End
+    IfBreak -- "False" --> IfCont{"i == 2 ?"}
+    IfCont -- "True" --> ContStmt["continue：跳過下方輸出"]
+    ContStmt --> Update["i++"]
+    IfCont -- "False" --> Print["輸出 i"]
+    Print --> Update
+    Update --> Cond
+
+    style ContStmt fill:#fef5e7,stroke:#e67e22,stroke-width:2px
+    style BreakStmt fill:#fdedec,stroke:#c0392b,stroke-width:2px
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：逐步除錯追蹤器 -->
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>🐞 continue &amp; break 逐步除錯追蹤器</span>
+                    <span id="ctrl-step-counter" style="font-size:0.85rem; color:#e67e22;">步驟：0 / 15</span>
+                </div>
+
+                <div class="debugger-controls">
+                    <button class="btn-dbg btn-reset" id="ctrlResetBtn">⏮ 重置 (Reset)</button>
+                    <button class="btn-dbg btn-step" id="ctrlStepBtn">⏭ 下一步 (Step Next)</button>
+                    <button class="btn-dbg btn-auto" id="ctrlAutoBtn">▶ 自動播放</button>
+                </div>
+
+                <div class="debug-code-box notranslate" id="ctrl-code-lines"></div>
+
+                <div class="watch-panel">
+                    <div class="watch-grid">
+                        <div class="watch-item">
+                            <span class="watch-label">計數變數 i</span>
+                            <span class="watch-val" id="ctrl-var-i">未宣告</span>
+                        </div>
+                        <div class="watch-item">
+                            <span class="watch-label">控制狀態</span>
+                            <span class="watch-val" id="ctrl-var-status">準備開始</span>
+                        </div>
+                        <div class="watch-item">
+                            <span class="watch-label">條件 (i &lt;= 5)</span>
+                            <span class="watch-val" id="ctrl-var-cond">-</span>
+                        </div>
+                    </div>
+                    <div class="step-explanation" id="ctrl-explanation">
+                        點擊 <strong>「⏭ 下一步」</strong> 觀察 <code>i = 2</code> 遇到 <code>continue</code> 與 <code>i = 4</code> 遇到 <code>break</code> 時的跳轉路徑！
+                    </div>
+                </div>
+
+                <div class="console-box">
+                    <div class="console-header">
+                        <span>💻 Console 終端機輸出視窗 (cout)</span>
+                        <span>標準輸出</span>
+                    </div>
+                    <div id="ctrl-console-output" class="notranslate"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <footer>
@@ -858,6 +985,9 @@ int main() {
     function switchTab(targetId) {
         stopBasicAuto();
         stopAdvAuto();
+        if (typeof window.stopCtrlAuto === 'function') {
+            window.stopCtrlAuto();
+        }
 
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -911,362 +1041,418 @@ int main() {
         });
     }
 
-    // =========================================================================
-    // 除錯器 1：主題一（輸出 1 到 5 基礎 for 迴圈逐步追蹤器）
-    // =========================================================================
-    const basicCodeArray = [
-        '#include <iostream>',
-        'using namespace std;',
-        'int main() {',
-        '    for (int i = 1; i <= 5; i++) {',
-        '        cout << i << " ";',
-        '    }',
-        '    return 0;',
-        '}'
+    // ==================== 1. 基礎 for 迴圈逐步除錯器 ====================
+    const basicCodeLines = [
+        "#include <iostream>",
+        "using namespace std;",
+        "",
+        "int main() {",
+        "    for (int i = 1; i <= 5; i++) {",
+        "        cout << i << \" \";",
+        "    }",
+        "    return 0;",
+        "}"
     ];
 
-    function buildBasicTrace() {
-        const steps = [
-            {
-                line: 2,
-                iText: '未宣告',
-                condText: '-',
-                condClass: '',
-                stage: '準備開始',
-                bannerStage: null,
-                consoleText: '',
-                explanation: '程式從 <code>main()</code> 函式開始執行，準備進入第 4 行的 <code>for</code> 迴圈。'
-            },
-            {
-                line: 3,
-                iText: '1',
-                condText: '-',
-                condClass: '',
-                stage: '① 初始設定',
-                bannerStage: 'init',
-                consoleText: '',
-                explanation: '執行 <strong>步驟 ① 初始設定</strong>：宣告整數變數 <code>i</code> 並設初值為 <code>1</code>（整段迴圈只執行這一次）。'
-            }
-        ];
+    const basicSteps = [
+        { line: 4, stage: "init", i: "1", cond: "尚未判斷", condCls: "", stageText: "① 初始設定", out: "", desc: "執行 for 迴圈初始設定：宣告整數變數 i 並設為 1（僅執行一次）。" },
+        { line: 4, stage: "cond", i: "1", cond: "1 <= 5 (true)", condCls: "true-val", stageText: "② 條件判斷", out: "", desc: "判斷 1 <= 5 是否成立：結果為 true，進入迴圈主體。" },
+        { line: 5, stage: "body", i: "1", cond: "1 <= 5 (true)", condCls: "true-val", stageText: "③ 迴圈主體", out: "1 ", desc: "執行迴圈主體：輸出目前 i 的值（1）。" },
+        { line: 4, stage: "update", i: "2", cond: "2 <= 5 (true)", condCls: "true-val", stageText: "④ 更新變數", out: "1 ", desc: "執行更新運算式 i++，i 變成 2，接著判斷 2 <= 5 成立（true）。" },
+        { line: 5, stage: "body", i: "2", cond: "2 <= 5 (true)", condCls: "true-val", stageText: "③ 迴圈主體", out: "1 2 ", desc: "執行迴圈主體：輸出 2。" },
+        { line: 4, stage: "update", i: "3", cond: "3 <= 5 (true)", condCls: "true-val", stageText: "④ 更新變數", out: "1 2 ", desc: "執行 i++，i 變成 3，接著判斷 3 <= 5 成立（true）。" },
+        { line: 5, stage: "body", i: "3", cond: "3 <= 5 (true)", condCls: "true-val", stageText: "③ 迴圈主體", out: "1 2 3 ", desc: "執行迴圈主體：輸出 3。" },
+        { line: 4, stage: "update", i: "4", cond: "4 <= 5 (true)", condCls: "true-val", stageText: "④ 更新變數", out: "1 2 3 ", desc: "執行 i++，i 變成 4，接著判斷 4 <= 5 成立（true）。" },
+        { line: 5, stage: "body", i: "4", cond: "4 <= 5 (true)", condCls: "true-val", stageText: "③ 迴圈主體", out: "1 2 3 4 ", desc: "執行迴圈主體：輸出 4。" },
+        { line: 4, stage: "update", i: "5", cond: "5 <= 5 (true)", condCls: "true-val", stageText: "④ 更新變數", out: "1 2 3 4 ", desc: "執行 i++，i 變成 5，接著判斷 5 <= 5 成立（true）。" },
+        { line: 5, stage: "body", i: "5", cond: "5 <= 5 (true)", condCls: "true-val", stageText: "③ 迴圈主體", out: "1 2 3 4 5 ", desc: "執行迴圈主體：輸出 5。" },
+        { line: 4, stage: "update", i: "6", cond: "6 <= 5 (false)", condCls: "false-val", stageText: "② 條件不成立", out: "1 2 3 4 5 ", desc: "執行 i++，i 變成 6；判斷 6 <= 5 為 false，跳出 for 迴圈！" },
+        { line: 7, stage: "", i: "6", cond: "6 <= 5 (false)", condCls: "false-val", stageText: "迴圈已結束", out: "1 2 3 4 5 ", desc: "迴圈結束，準備執行 return 0 結束 main 函式。" }
+    ];
 
-        let output = '';
-        for (let i = 1; i <= 5; i++) {
-            steps.push({
-                line: 3,
-                iText: String(i),
-                condText: `true (${i} <= 5)`,
-                condClass: 'true-val',
-                stage: '② 條件判斷',
-                bannerStage: 'cond',
-                consoleText: output,
-                explanation: `執行 <strong>步驟 ② 條件判斷</strong>：目前 <code>i = ${i}</code>，<code>${i} &lt;= 5</code> 成立（true），進入迴圈主體。`
-            });
-
-            output += `${i} `;
-            steps.push({
-                line: 4,
-                iText: String(i),
-                condText: `true (${i} <= 5)`,
-                condClass: 'true-val',
-                stage: '③ 迴圈主體',
-                bannerStage: 'body',
-                consoleText: output,
-                explanation: `執行 <strong>步驟 ③ 迴圈主體</strong>：輸出 <code>${i}</code> 與一個空白字元，終端機目前顯示 <code>"${output.trim()}"</code>。`
-            });
-
-            const nextI = i + 1;
-            steps.push({
-                line: 3,
-                iText: String(nextI),
-                condText: '-',
-                condClass: '',
-                stage: '④ 更新變數',
-                bannerStage: 'update',
-                consoleText: output,
-                explanation: `執行 <strong>步驟 ④ 更新變數</strong>：<code>i++</code> 將 <code>i</code> 從 <code>${i}</code> 增加為 <code>${nextI}</code>，接著回到步驟 ② 判斷。`
-            });
-        }
-
-        // i = 6 時條件不成立
-        steps.push({
-            line: 3,
-            iText: '6',
-            condText: 'false (6 <= 5)',
-            condClass: 'false-val',
-            stage: '② 條件判斷',
-            bannerStage: 'cond',
-            consoleText: output,
-            explanation: '執行 <strong>步驟 ② 條件判斷</strong>：目前 <code>i = 6</code>，<code>6 &lt;= 5</code> 不成立（false），跳出 <code>for</code> 迴圈！'
-        });
-
-        steps.push({
-            line: 6,
-            iText: '已離開迴圈',
-            condText: 'false',
-            condClass: 'false-val',
-            stage: '程式結束',
-            bannerStage: null,
-            consoleText: output,
-            explanation: '迴圈結束後執行 <code>return 0;</code>，程式順利完成。'
-        });
-
-        return steps;
-    }
-
-    const basicTrace = buildBasicTrace();
-    let basicStepIndex = 0;
-    let basicAutoTimer = null;
-
-    function updateBasicDebugger() {
-        const step = basicTrace[basicStepIndex];
-        renderCodeLines('basic-code-lines', basicCodeArray, step.line);
-        highlightStageBanner(step.bannerStage);
-
-        document.getElementById('basic-step-counter').textContent =
-            `步驟：${basicStepIndex} / ${basicTrace.length - 1}`;
-        document.getElementById('basic-var-i').textContent = step.iText;
-
-        const condEl = document.getElementById('basic-var-cond');
-        condEl.textContent = step.condText;
-        condEl.className = `watch-val ${step.condClass}`.trim();
-
-        document.getElementById('basic-var-stage').textContent = step.stage;
-        document.getElementById('basic-explanation').innerHTML = step.explanation;
-        document.getElementById('basic-console-output').textContent = step.consoleText;
-
-        document.getElementById('basicStepBtn').disabled = basicStepIndex >= basicTrace.length - 1;
-    }
+    let basicIdx = -1;
+    let basicTimer = null;
+    const basicResetBtn = document.getElementById("basicResetBtn");
+    const basicStepBtn = document.getElementById("basicStepBtn");
+    const basicAutoBtn = document.getElementById("basicAutoBtn");
 
     function stopBasicAuto() {
-        if (basicAutoTimer) {
-            clearInterval(basicAutoTimer);
-            basicAutoTimer = null;
+        if (basicTimer) {
+            clearInterval(basicTimer);
+            basicTimer = null;
         }
-        const btn = document.getElementById('basicAutoBtn');
-        if (btn) {
-            btn.textContent = '▶ 自動播放';
-            btn.classList.remove('playing');
+        if (basicAutoBtn) {
+            basicAutoBtn.textContent = "▶ 自動播放";
+            basicAutoBtn.classList.remove("playing");
         }
     }
 
-    document.getElementById('basicStepBtn').addEventListener('click', () => {
-        if (basicStepIndex < basicTrace.length - 1) {
-            basicStepIndex++;
-            updateBasicDebugger();
-        }
-    });
+    function renderBasicState() {
+        const total = basicSteps.length;
+        const counterEl = document.getElementById("basic-step-counter");
+        const iEl = document.getElementById("basic-var-i");
+        const condEl = document.getElementById("basic-var-cond");
+        const stageEl = document.getElementById("basic-var-stage");
+        const descEl = document.getElementById("basic-explanation");
+        const outEl = document.getElementById("basic-console-output");
 
-    document.getElementById('basicResetBtn').addEventListener('click', () => {
-        stopBasicAuto();
-        basicStepIndex = 0;
-        updateBasicDebugger();
-    });
+        if (!counterEl) return;
 
-    document.getElementById('basicAutoBtn').addEventListener('click', function() {
-        if (basicAutoTimer) {
-            stopBasicAuto();
+        if (basicIdx < 0) {
+            counterEl.textContent = `步驟：0 / ${total}`;
+            renderCodeLines("basic-code-lines", basicCodeLines, -1);
+            highlightStageBanner("");
+            iEl.textContent = "未宣告";
+            condEl.textContent = "-";
+            condEl.className = "watch-val";
+            stageEl.textContent = "準備開始";
+            descEl.innerHTML = '點擊 <strong>「⏭ 下一步」</strong> 開始單步追蹤 C++ 程式如何執行 <code>for</code> 迴圈！';
+            outEl.textContent = "";
+            basicStepBtn.disabled = false;
             return;
         }
-        if (basicStepIndex >= basicTrace.length - 1) {
-            basicStepIndex = 0;
-            updateBasicDebugger();
-        }
-        this.textContent = '⏸ 暫停播放';
-        this.classList.add('playing');
-        basicAutoTimer = setInterval(() => {
-            if (basicStepIndex < basicTrace.length - 1) {
-                basicStepIndex++;
-                updateBasicDebugger();
-            } else {
-                stopBasicAuto();
-            }
-        }, 900);
-    });
 
-    // =========================================================================
-    // 除錯器 2：主題二（累加演算法逐步除錯器）
-    // =========================================================================
-    const advCodeArray = [
-        'int N, sum = 0;',
-        'cin >> N;',
-        'for (int i = 1; i <= N; i++) {',
-        '    sum = sum + i;',
-        '}',
-        'cout << "總和 = " << sum << endl;'
+        const s = basicSteps[basicIdx];
+        counterEl.textContent = `步驟：${basicIdx + 1} / ${total}`;
+        renderCodeLines("basic-code-lines", basicCodeLines, s.line);
+        highlightStageBanner(s.stage);
+        iEl.textContent = s.i;
+        condEl.textContent = s.cond;
+        condEl.className = `watch-val ${s.condCls || ""}`;
+        stageEl.textContent = s.stageText;
+        descEl.innerHTML = s.desc;
+        outEl.textContent = s.out;
+        basicStepBtn.disabled = basicIdx >= total - 1;
+        if (basicIdx >= total - 1) stopBasicAuto();
+    }
+
+    function stepBasicNext() {
+        if (basicIdx < basicSteps.length - 1) {
+            basicIdx++;
+            renderBasicState();
+        }
+    }
+
+    basicResetBtn.addEventListener("click", () => { stopBasicAuto(); basicIdx = -1; renderBasicState(); });
+    basicStepBtn.addEventListener("click", () => { stopBasicAuto(); stepBasicNext(); });
+    basicAutoBtn.addEventListener("click", () => {
+        if (basicTimer) { stopBasicAuto(); return; }
+        if (basicIdx >= basicSteps.length - 1) { basicIdx = -1; renderBasicState(); }
+        basicAutoBtn.textContent = "⏸ 暫停播放";
+        basicAutoBtn.classList.add("playing");
+        basicTimer = setInterval(() => {
+            if (basicIdx < basicSteps.length - 1) stepBasicNext();
+            else stopBasicAuto();
+        }, 850);
+    });
+    renderBasicState();
+
+    // ==================== 2. 累加演算法逐步除錯器 ====================
+    const advCodeLines = [
+        "#include <iostream>",
+        "using namespace std;",
+        "",
+        "int main() {",
+        "    int N = 4, sum = 0;",
+        "    for (int i = 1; i <= N; i++) {",
+        "        sum = sum + i;",
+        "    }",
+        "    cout << \"Sum = \" << sum << endl;",
+        "    return 0;",
+        "}"
     ];
 
-    function buildAdvTrace(nVal) {
-        const steps = [
-            {
-                line: 0,
-                iText: `- / ${nVal}`,
-                sumText: '0',
-                condText: '-',
-                condClass: '',
-                consoleText: '',
-                explanation: `宣告整數變數 <code>N</code> 與累加器 <code>sum</code>，並將 <code>sum</code> 初始化為 <code>0</code>。`
-            },
-            {
-                line: 1,
-                iText: `- / ${nVal}`,
-                sumText: '0',
-                condText: '-',
-                condClass: '',
-                consoleText: '',
-                explanation: `讀取輸入值 <code>N = ${nVal}</code>，準備從 <code>1</code> 累加到 <code>${nVal}</code>。`
-            },
-            {
-                line: 2,
-                iText: `1 / ${nVal}`,
-                sumText: '0',
-                condText: '-',
-                condClass: '',
-                consoleText: '',
-                explanation: `<strong>步驟 ① 初始設定</strong>：設定 <code>i = 1</code>。`
-            }
-        ];
+    let advN = 4;
+    let advSteps = [];
+    let advIdx = -1;
+    let advTimer = null;
 
+    const advNSelect = document.getElementById("adv-n-select");
+    const advResetBtn = document.getElementById("advResetBtn");
+    const advStepBtn = document.getElementById("advStepBtn");
+    const advAutoBtn = document.getElementById("advAutoBtn");
+
+    function buildAdvSteps(nVal) {
+        const steps = [];
         let sum = 0;
+        steps.push({ line: 4, iText: `- / ${nVal}`, sumText: "0", condText: "-", condCls: "", out: "", desc: `宣告變數 N = ${nVal}，並將累加器 sum 初始化為 0。` });
         for (let i = 1; i <= nVal; i++) {
             steps.push({
-                line: 2,
+                line: 5,
                 iText: `${i} / ${nVal}`,
-                sumText: String(sum),
-                condText: `true (${i} <= ${nVal})`,
-                condClass: 'true-val',
-                consoleText: '',
-                explanation: `<strong>步驟 ② 條件判斷</strong>：<code>${i} &lt;= ${nVal}</code> 成立（true），進入迴圈計算。`
+                sumText: `${sum}`,
+                condText: `${i} <= ${nVal} (true)`,
+                condCls: "true-val",
+                out: "",
+                desc: i === 1
+                    ? `初始設定 i = 1，並判斷 ${i} <= ${nVal} 成立（true），進入迴圈。`
+                    : `更新 i 變為 ${i}，並判斷 ${i} <= ${nVal} 成立（true），進入迴圈。`
             });
-
             const prevSum = sum;
             sum += i;
             steps.push({
-                line: 3,
+                line: 6,
                 iText: `${i} / ${nVal}`,
-                sumText: String(sum),
-                condText: `true (${i} <= ${nVal})`,
-                condClass: 'true-val',
-                consoleText: '',
-                explanation: `<strong>步驟 ③ 迴圈主體</strong>：<code>sum = ${prevSum} + ${i} = ${sum}</code>，累加器更新為 <code>${sum}</code>。`
-            });
-
-            const nextI = i + 1;
-            steps.push({
-                line: 2,
-                iText: `${nextI} / ${nVal}`,
-                sumText: String(sum),
-                condText: '-',
-                condClass: '',
-                consoleText: '',
-                explanation: `<strong>步驟 ④ 更新變數</strong>：<code>i++</code> 使 <code>i</code> 變成 <code>${nextI}</code>，回到條件判斷。`
+                sumText: `${sum}`,
+                condText: `${i} <= ${nVal} (true)`,
+                condCls: "true-val",
+                out: "",
+                desc: `執行 sum = sum + i：${prevSum} + ${i} = ${sum}，sum 更新為 ${sum}。`
             });
         }
-
-        const finalI = nVal + 1;
-        steps.push({
-            line: 2,
-            iText: `${finalI} / ${nVal}`,
-            sumText: String(sum),
-            condText: `false (${finalI} <= ${nVal})`,
-            condClass: 'false-val',
-            consoleText: '',
-            explanation: `<strong>步驟 ② 條件判斷</strong>：<code>${finalI} &lt;= ${nVal}</code> 不成立（false），結束迴圈。`
-        });
-
+        const endI = nVal + 1;
         steps.push({
             line: 5,
-            iText: `完成 / ${nVal}`,
-            sumText: String(sum),
-            condText: 'false',
-            condClass: 'false-val',
-            consoleText: `總和 = ${sum}`,
-            explanation: `輸出最終累加結果：<code>總和 = ${sum}</code>。`
+            iText: `${endI} / ${nVal}`,
+            sumText: `${sum}`,
+            condText: `${endI} <= ${nVal} (false)`,
+            condCls: "false-val",
+            out: "",
+            desc: `i 更新為 ${endI}，判斷 ${endI} <= ${nVal} 不成立（false），結束迴圈。`
         });
-
+        steps.push({
+            line: 8,
+            iText: `${endI} / ${nVal}`,
+            sumText: `${sum}`,
+            condText: `${endI} <= ${nVal} (false)`,
+            condCls: "false-val",
+            out: `Sum = ${sum}`,
+            desc: `輸出最終累加結果：Sum = ${sum}。`
+        });
         return steps;
     }
 
-    let currentAdvN = parseInt(document.getElementById('adv-n-select').value, 10);
-    let advTrace = buildAdvTrace(currentAdvN);
-    let advStepIndex = 0;
-    let advAutoTimer = null;
-
-    function updateAdvDebugger() {
-        const step = advTrace[advStepIndex];
-        renderCodeLines('adv-code-lines', advCodeArray, step.line);
-
-        document.getElementById('adv-step-counter').textContent =
-            `步驟：${advStepIndex} / ${advTrace.length - 1}`;
-        document.getElementById('adv-var-i').textContent = step.iText;
-        document.getElementById('adv-var-sum').textContent = step.sumText;
-
-        const condEl = document.getElementById('adv-var-cond');
-        condEl.textContent = step.condText;
-        condEl.className = `watch-val ${step.condClass}`.trim();
-
-        document.getElementById('adv-explanation').innerHTML = step.explanation;
-        document.getElementById('adv-console-output').textContent = step.consoleText;
-
-        document.getElementById('advStepBtn').disabled = advStepIndex >= advTrace.length - 1;
-    }
-
     function stopAdvAuto() {
-        if (advAutoTimer) {
-            clearInterval(advAutoTimer);
-            advAutoTimer = null;
+        if (advTimer) {
+            clearInterval(advTimer);
+            advTimer = null;
         }
-        const btn = document.getElementById('advAutoBtn');
-        if (btn) {
-            btn.textContent = '▶ 自動播放';
-            btn.classList.remove('playing');
+        if (advAutoBtn) {
+            advAutoBtn.textContent = "▶ 自動播放";
+            advAutoBtn.classList.remove("playing");
         }
     }
 
-    document.getElementById('adv-n-select').addEventListener('change', function() {
-        stopAdvAuto();
-        currentAdvN = parseInt(this.value, 10);
-        advTrace = buildAdvTrace(currentAdvN);
-        advStepIndex = 0;
-        updateAdvDebugger();
-    });
+    function renderAdvState() {
+        const total = advSteps.length;
+        const counterEl = document.getElementById("adv-step-counter");
+        const iEl = document.getElementById("adv-var-i");
+        const sumEl = document.getElementById("adv-var-sum");
+        const condEl = document.getElementById("adv-var-cond");
+        const descEl = document.getElementById("adv-explanation");
+        const outEl = document.getElementById("adv-console-output");
 
-    document.getElementById('advStepBtn').addEventListener('click', () => {
-        if (advStepIndex < advTrace.length - 1) {
-            advStepIndex++;
-            updateAdvDebugger();
-        }
-    });
+        if (!counterEl) return;
 
-    document.getElementById('advResetBtn').addEventListener('click', () => {
-        stopAdvAuto();
-        advStepIndex = 0;
-        updateAdvDebugger();
-    });
-
-    document.getElementById('advAutoBtn').addEventListener('click', function() {
-        if (advAutoTimer) {
-            stopAdvAuto();
+        if (advIdx < 0) {
+            counterEl.textContent = `步驟：0 / ${total}`;
+            renderCodeLines("adv-code-lines", advCodeLines.map(l => l.replace("N = 4", `N = ${advN}`)), -1);
+            iEl.textContent = `- / ${advN}`;
+            sumEl.textContent = "未宣告";
+            condEl.textContent = "-";
+            condEl.className = "watch-val";
+            descEl.innerHTML = '請按 <strong>「⏭ 下一步」</strong> 觀察 <code>sum</code> 如何每一輪把當下的 <code>i</code> 累加進去！';
+            outEl.textContent = "";
+            advStepBtn.disabled = false;
             return;
         }
-        if (advStepIndex >= advTrace.length - 1) {
-            advStepIndex = 0;
-            updateAdvDebugger();
+
+        const s = advSteps[advIdx];
+        counterEl.textContent = `步驟：${advIdx + 1} / ${total}`;
+        renderCodeLines("adv-code-lines", advCodeLines.map(l => l.replace("N = 4", `N = ${advN}`)), s.line);
+        iEl.textContent = s.iText;
+        sumEl.textContent = s.sumText;
+        condEl.textContent = s.condText;
+        condEl.className = `watch-val ${s.condCls || ""}`;
+        descEl.innerHTML = s.desc;
+        outEl.textContent = s.out;
+        advStepBtn.disabled = advIdx >= total - 1;
+        if (advIdx >= total - 1) stopAdvAuto();
+    }
+
+    function stepAdvNext() {
+        if (advIdx < advSteps.length - 1) {
+            advIdx++;
+            renderAdvState();
         }
-        this.textContent = '⏸ 暫停播放';
-        this.classList.add('playing');
-        advAutoTimer = setInterval(() => {
-            if (advStepIndex < advTrace.length - 1) {
-                advStepIndex++;
-                updateAdvDebugger();
-            } else {
-                stopAdvAuto();
-            }
-        }, 900);
+    }
+
+    advNSelect.addEventListener("change", (e) => {
+        stopAdvAuto();
+        advN = parseInt(e.target.value, 10);
+        advSteps = buildAdvSteps(advN);
+        advIdx = -1;
+        renderAdvState();
+    });
+    advResetBtn.addEventListener("click", () => { stopAdvAuto(); advIdx = -1; renderAdvState(); });
+    advStepBtn.addEventListener("click", () => { stopAdvAuto(); stepAdvNext(); });
+    advAutoBtn.addEventListener("click", () => {
+        if (advTimer) { stopAdvAuto(); return; }
+        if (advIdx >= advSteps.length - 1) { advIdx = -1; renderAdvState(); }
+        advAutoBtn.textContent = "⏸ 暫停播放";
+        advAutoBtn.classList.add("playing");
+        advTimer = setInterval(() => {
+            if (advIdx < advSteps.length - 1) stepAdvNext();
+            else stopAdvAuto();
+        }, 850);
     });
 
-    // 初始化除錯器畫面
-    updateBasicDebugger();
-    updateAdvDebugger();
+    advSteps = buildAdvSteps(advN);
+    renderAdvState();
+
+    // ==================== 3. continue 與 break 逐步除錯器 ====================
+    (function() {
+        const ctrlCodeLines = [
+            "#include <iostream>",
+            "using namespace std;",
+            "",
+            "int main() {",
+            "    for (int i = 1; i <= 5; i++) {",
+            "        if (i == 4) break;",
+            "        if (i == 2) continue;",
+            "        cout << i << \" \";",
+            "    }",
+            "    cout << \"[Done]\";",
+            "    return 0;",
+            "}"
+        ];
+
+        const ctrlSteps = [
+            { line: 4, i: "1", cond: "1 <= 5 (true)", condCls: "true-val", status: "① 初始化 i=1", statusCls: "", badge: "初始化", badgeCls: "", out: "", desc: "執行 for 迴圈初始設定：宣告並設定 i = 1。" },
+            { line: 4, i: "1", cond: "1 <= 5 (true)", condCls: "true-val", status: "② 條件成立", statusCls: "true-val", badge: "進入迴圈", badgeCls: "", out: "", desc: "判斷 1 <= 5 成立（true），進入迴圈主體。" },
+            { line: 5, i: "1", cond: "1 <= 5 (true)", condCls: "true-val", status: "檢查 i == 4", statusCls: "", badge: "條件檢查", badgeCls: "", out: "", desc: "判斷 i == 4：目前 i 為 1，不成立，繼續往下執行。" },
+            { line: 6, i: "1", cond: "1 <= 5 (true)", condCls: "true-val", status: "檢查 i == 2", statusCls: "", badge: "條件檢查", badgeCls: "", out: "", desc: "判斷 i == 2：目前 i 為 1，不成立，繼續往下執行。" },
+            { line: 7, i: "1", cond: "1 <= 5 (true)", condCls: "true-val", status: "③ 執行輸出", statusCls: "true-val", badge: "正常輸出", badgeCls: "", out: "1 ", desc: "執行 cout << i << \" \"，終端機印出 1。" },
+            { line: 4, i: "2", cond: "2 <= 5 (true)", condCls: "true-val", status: "④ 更新 i++ (變為2)", statusCls: "", badge: "變數更新", badgeCls: "", out: "1 ", desc: "第一輪結束，執行 i++ 使 i 變成 2，再判斷 2 <= 5 成立。" },
+            { line: 5, i: "2", cond: "2 <= 5 (true)", condCls: "true-val", status: "檢查 i == 4", statusCls: "", badge: "條件檢查", badgeCls: "", out: "1 ", desc: "判斷 i == 4：i 為 2，不成立。" },
+            { line: 6, i: "2", cond: "2 <= 5 (true)", condCls: "true-val", status: "觸發 continue！", statusCls: "continue-val", badge: "continue 跳過", badgeCls: "is-continue", out: "1 ", desc: "i == 2 成立！執行 <code>continue</code>：跳過第 8 行的輸出，直接準備進入下一輪更新。" },
+            { line: 4, i: "3", cond: "3 <= 5 (true)", condCls: "true-val", status: "④ 更新 i++ (變為3)", statusCls: "continue-val", badge: "變數更新", badgeCls: "", out: "1 ", desc: "因為剛才執行了 <code>continue</code>，直接跳回 for 標頭執行 i++（i 變為 3），並判斷 3 <= 5 成立。" },
+            { line: 7, i: "3", cond: "3 <= 5 (true)", condCls: "true-val", status: "③ 執行輸出", statusCls: "true-val", badge: "正常輸出", badgeCls: "", out: "1 3 ", desc: "i = 3 未觸發 break 或 continue，執行 cout 印出 3。" },
+            { line: 4, i: "4", cond: "4 <= 5 (true)", condCls: "true-val", status: "④ 更新 i++ (變為4)", statusCls: "", badge: "變數更新", badgeCls: "", out: "1 3 ", desc: "第三輪結束，執行 i++ 使 i 變成 4，判斷 4 <= 5 成立。" },
+            { line: 5, i: "4", cond: "4 <= 5 (true)", condCls: "true-val", status: "觸發 break！", statusCls: "break-val", badge: "break 跳出", badgeCls: "is-break", out: "1 3 ", desc: "i == 4 成立！執行 <code>break</code>：立刻強制跳出整個 for 迴圈（第 7、8 行與 i=5 都不會執行）。" },
+            { line: 9, i: "4", cond: "已強制跳出", condCls: "false-val", status: "離開迴圈", statusCls: "break-val", badge: "迴圈已結束", badgeCls: "is-break", out: "1 3 ", desc: "控制權來到 for 迴圈結束後的第一行（第 10 行）。" },
+            { line: 9, i: "4", cond: "已強制跳出", condCls: "false-val", status: "輸出 [Done]", statusCls: "", badge: "迴圈外敘述", badgeCls: "", out: "1 3 [Done]", desc: "執行 cout << \"[Done]\"，終端機輸出 [Done]。" },
+            { line: 10, i: "4", cond: "-", condCls: "", status: "程式結束", statusCls: "", badge: "完成", badgeCls: "", out: "1 3 [Done]", desc: "main 函式回傳 0，本次除錯追蹤完成！" }
+        ];
+
+        let ctrlIdx = -1;
+        let ctrlTimer = null;
+
+        const resetBtn = document.getElementById("ctrlResetBtn");
+        const stepBtn = document.getElementById("ctrlStepBtn");
+        const autoBtn = document.getElementById("ctrlAutoBtn");
+
+        function stopCtrlAuto() {
+            if (ctrlTimer) {
+                clearInterval(ctrlTimer);
+                ctrlTimer = null;
+            }
+            if (autoBtn) {
+                autoBtn.textContent = "▶ 自動播放";
+                autoBtn.classList.remove("playing");
+            }
+        }
+        window.stopCtrlAuto = stopCtrlAuto;
+
+        function renderCtrlState() {
+            const total = ctrlSteps.length;
+            const counterEl = document.getElementById("ctrl-step-counter");
+            const iEl = document.getElementById("ctrl-var-i");
+            const condEl = document.getElementById("ctrl-var-cond");
+            const statusEl = document.getElementById("ctrl-var-status");
+            const badgeEl = document.getElementById("ctrl-flow-badge");
+            const descEl = document.getElementById("ctrl-explanation");
+            const outEl = document.getElementById("ctrl-console-output");
+
+            if (!counterEl) return;
+
+            if (ctrlIdx < 0) {
+                counterEl.textContent = `步驟：0 / ${total}`;
+                renderCodeLines("ctrl-code-lines", ctrlCodeLines, -1);
+                iEl.textContent = "未宣告";
+                iEl.className = "watch-val";
+                condEl.textContent = "-";
+                condEl.className = "watch-val";
+                statusEl.textContent = "準備開始";
+                statusEl.className = "watch-val";
+                badgeEl.textContent = "一般循環";
+                badgeEl.className = "badge-flow";
+                descEl.innerHTML = "點擊 <strong>「⏭ 下一步」</strong> 觀察 <code>i = 2</code> 遇到 <code>continue</code> 與 <code>i = 4</code> 遇到 <code>break</code> 時的跳轉路徑！";
+                outEl.textContent = "";
+                stepBtn.disabled = false;
+                return;
+            }
+
+            const s = ctrlSteps[ctrlIdx];
+            counterEl.textContent = `步驟：${ctrlIdx + 1} / ${total}`;
+            renderCodeLines("ctrl-code-lines", ctrlCodeLines, s.line);
+
+            iEl.textContent = s.i;
+            iEl.className = "watch-val";
+
+            condEl.textContent = s.cond;
+            condEl.className = `watch-val ${s.condCls || ""}`;
+
+            statusEl.textContent = s.status;
+            statusEl.className = `watch-val ${s.statusCls || ""}`;
+
+            badgeEl.textContent = s.badge;
+            badgeEl.className = `badge-flow ${s.badgeCls || ""}`;
+
+            descEl.innerHTML = s.desc;
+            outEl.textContent = s.out;
+
+            stepBtn.disabled = ctrlIdx >= total - 1;
+            if (ctrlIdx >= total - 1) {
+                stopCtrlAuto();
+            }
+        }
+
+        function stepCtrlNext() {
+            if (ctrlIdx < ctrlSteps.length - 1) {
+                ctrlIdx++;
+                renderCtrlState();
+            }
+        }
+
+        if (resetBtn && stepBtn && autoBtn) {
+            resetBtn.addEventListener("click", () => {
+                stopCtrlAuto();
+                ctrlIdx = -1;
+                renderCtrlState();
+            });
+
+            stepBtn.addEventListener("click", () => {
+                stopCtrlAuto();
+                stepCtrlNext();
+            });
+
+            autoBtn.addEventListener("click", () => {
+                if (ctrlTimer) {
+                    stopCtrlAuto();
+                    return;
+                }
+                if (ctrlIdx >= ctrlSteps.length - 1) {
+                    ctrlIdx = -1;
+                    renderCtrlState();
+                }
+                autoBtn.textContent = "⏸ 暫停播放";
+                autoBtn.classList.add("playing");
+                ctrlTimer = setInterval(() => {
+                    if (ctrlIdx < ctrlSteps.length - 1) {
+                        stepCtrlNext();
+                    } else {
+                        stopCtrlAuto();
+                    }
+                }, 900);
+            });
+
+            renderCtrlState();
+        }
+    })();
+
+    // 初始載入時渲染預設 active 分頁的 Mermaid 流程圖
+    renderMermaidInContainer("tab-cover");
 </script>
 
 </body>
